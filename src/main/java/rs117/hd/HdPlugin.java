@@ -402,6 +402,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	public boolean configUseFasterModelHashing;
 	public boolean configUndoVanillaShading;
 	public boolean configPreserveVanillaNormals;
+	public boolean configAccurateLightAttenuation;
 	public ShadowMode configShadowMode;
 	public SeasonalTheme configSeasonalTheme;
 	public int configMaxDynamicLights;
@@ -756,6 +757,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			.define("DISABLE_DIRECTIONAL_SHADING", config.shadingMode() != ShadingMode.DEFAULT)
 			.define("FLAT_SHADING", config.flatShading())
 			.define("SHADOW_MAP_OVERLAY", enableShadowMapOverlay)
+			.define("ACCURATE_LIGHT_ATTENUATION", configAccurateLightAttenuation)
 			.addIncludePath(SHADER_PATH);
 
 		glSceneProgram = PROGRAM.compile(template);
@@ -1420,16 +1422,29 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			// Update lights UBO
 			uniformBufferLights.clear();
 			ArrayList<SceneLight> visibleLights = lightManager.getVisibleLights(configMaxDynamicLights);
-			visibleLightCount = visibleLights.size();
-			for (SceneLight light : visibleLights) {
-				uniformBufferLights.putFloat(light.x + cameraShift[0]);
-				uniformBufferLights.putFloat(light.z);
-				uniformBufferLights.putFloat(light.y + cameraShift[1]);
-				uniformBufferLights.putFloat(light.currentSize * light.currentSize);
-				uniformBufferLights.putFloat(light.currentColor[0] * light.currentStrength);
-				uniformBufferLights.putFloat(light.currentColor[1] * light.currentStrength);
-				uniformBufferLights.putFloat(light.currentColor[2] * light.currentStrength);
-				uniformBufferLights.putFloat(0); // pad
+			sceneContext.visibleLightCount = visibleLights.size();
+			if (configAccurateLightAttenuation) {
+				for (SceneLight light : visibleLights) {
+					uniformBufferLights.putFloat(light.x + sceneContext.cameraShift[0]);
+					uniformBufferLights.putFloat(light.z);
+					uniformBufferLights.putFloat(light.y + sceneContext.cameraShift[1]);
+					uniformBufferLights.putFloat(light.currentStrength * config.accurateLightAttenuationStrengthFactor());
+					uniformBufferLights.putFloat(light.currentColor[0]);
+					uniformBufferLights.putFloat(light.currentColor[1]);
+					uniformBufferLights.putFloat(light.currentColor[2]);
+					uniformBufferLights.putFloat(0); // pad
+				}
+			} else {
+				for (SceneLight light : visibleLights) {
+					uniformBufferLights.putFloat(light.x + sceneContext.cameraShift[0]);
+					uniformBufferLights.putFloat(light.z);
+					uniformBufferLights.putFloat(light.y + sceneContext.cameraShift[1]);
+					uniformBufferLights.putFloat(light.currentSize * light.currentSize);
+					uniformBufferLights.putFloat(light.currentColor[0] * light.currentStrength);
+					uniformBufferLights.putFloat(light.currentColor[1] * light.currentStrength);
+					uniformBufferLights.putFloat(light.currentColor[2] * light.currentStrength);
+					uniformBufferLights.putFloat(0); // pad
+				}
 			}
 			uniformBufferLights.flip();
 			if (configMaxDynamicLights > 0) {
@@ -2390,6 +2405,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		configUseFasterModelHashing = config.fasterModelHashing();
 		configUndoVanillaShading = config.shadingMode() != ShadingMode.VANILLA;
 		configPreserveVanillaNormals = config.preserveVanillaNormals();
+		configAccurateLightAttenuation = config.accurateLightAttenuation();
 		configSeasonalTheme = config.seasonalTheme();
 	}
 
@@ -2440,6 +2456,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 						case KEY_PARALLAX_OCCLUSION_MAPPING:
 						case KEY_UI_SCALING_MODE:
 						case KEY_VANILLA_COLOR_BANDING:
+						case KEY_ACCURATE_LIGHT_ATTENUATION:
 							recompilePrograms = true;
 							break;
 						case KEY_SHADOW_MODE:
