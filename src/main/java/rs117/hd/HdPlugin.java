@@ -1422,12 +1422,12 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			// Update lights UBO
 			uniformBufferLights.clear();
 			ArrayList<SceneLight> visibleLights = lightManager.getVisibleLights(configMaxDynamicLights);
-			sceneContext.visibleLightCount = visibleLights.size();
+			visibleLightCount = visibleLights.size();
 			if (configAccurateLightAttenuation) {
 				for (SceneLight light : visibleLights) {
-					uniformBufferLights.putFloat(light.x + sceneContext.cameraShift[0]);
+					uniformBufferLights.putFloat(light.x + cameraShift[0]);
 					uniformBufferLights.putFloat(light.z);
-					uniformBufferLights.putFloat(light.y + sceneContext.cameraShift[1]);
+					uniformBufferLights.putFloat(light.y + cameraShift[1]);
 					uniformBufferLights.putFloat(light.currentStrength * config.accurateLightAttenuationStrengthFactor());
 					uniformBufferLights.putFloat(light.currentColor[0]);
 					uniformBufferLights.putFloat(light.currentColor[1]);
@@ -1436,9 +1436,9 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				}
 			} else {
 				for (SceneLight light : visibleLights) {
-					uniformBufferLights.putFloat(light.x + sceneContext.cameraShift[0]);
+					uniformBufferLights.putFloat(light.x + cameraShift[0]);
 					uniformBufferLights.putFloat(light.z);
-					uniformBufferLights.putFloat(light.y + sceneContext.cameraShift[1]);
+					uniformBufferLights.putFloat(light.y + cameraShift[1]);
 					uniformBufferLights.putFloat(light.currentSize * light.currentSize);
 					uniformBufferLights.putFloat(light.currentColor[0] * light.currentStrength);
 					uniformBufferLights.putFloat(light.currentColor[1] * light.currentStrength);
