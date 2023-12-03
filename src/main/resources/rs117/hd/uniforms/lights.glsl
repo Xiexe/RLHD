@@ -6,7 +6,7 @@ struct PointLight
 {
     vec4 position;
     vec3 color;
-    float pad;
+    float strength;
 };
 
 layout(std140) uniform PointLightUniforms {

@@ -1426,10 +1426,10 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 				uniformBufferLights.putFloat(light.z);
 				uniformBufferLights.putFloat(light.y + cameraShift[1]);
 				uniformBufferLights.putFloat(light.currentSize);
-				uniformBufferLights.putFloat(light.currentColor[0] * light.currentStrength);
-				uniformBufferLights.putFloat(light.currentColor[1] * light.currentStrength);
-				uniformBufferLights.putFloat(light.currentColor[2] * light.currentStrength);
-				uniformBufferLights.putFloat(0); // pad
+				uniformBufferLights.putFloat(light.currentColor[0]);
+				uniformBufferLights.putFloat(light.currentColor[1]);
+				uniformBufferLights.putFloat(light.currentColor[2]);
+				uniformBufferLights.putFloat(light.currentStrength);
 			}
 			uniformBufferLights.flip();
 			if (configMaxDynamicLights > 0) {

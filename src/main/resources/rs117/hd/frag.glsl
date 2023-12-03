@@ -98,6 +98,10 @@ vec2 worldUvs(float scale) {
 #include utils/shadows.glsl
 #include utils/water.glsl
 
+float map(float value, float min1, float max1, float min2, float max2) {
+  return min2 + (value - min1) * (max2 - min2) / (max1 - min1);
+}
+
 void main() {
     vec3 downDir = vec3(0, -1, 0);
     // View & light directions are from the fragment to the camera/light
@@ -452,11 +456,18 @@ void main() {
             float dist = length(lightToFrag);
             float radius = pos.w;
 
-            if (dist <= radius) {
-                vec3 pointLightColor = PointLightArray[i].color;
-                vec3 pointLightDir = normalize(lightToFrag);
+            float brightness = 1; // TODO:: feed actual brightness in, deprecate old "strength" values.
+            float actualBrightness = PointLightArray[i].strength < 1 ? brightness : map(PointLightArray[i].strength, 0.0, 25.0, 0.0, 1.0);
 
-                float attenuation = pow(smoothstep(radius, 0.0, dist), 3);
+            vec3 pointLightColor = PointLightArray[i].color * actualBrightness;
+            vec3 pointLightDir = normalize(lightToFrag);
+
+            float falloff = dist / radius;
+            if(falloff <= 1.0)
+            {
+                float falloffSq = falloff * falloff;
+                float inverseFalloffSq = 1 - falloffSq;
+                float attenuation = (inverseFalloffSq * inverseFalloffSq) / falloffSq;
                 pointLightColor *= attenuation;
 
                 float pointLightDotNormals = max(dot(normals, pointLightDir), 0);
@@ -466,7 +477,6 @@ void main() {
                 pointLightsSpecularOut += pointLightColor * specular(viewDir, pointLightReflectDir, vSpecularGloss, vSpecularStrength);
             }
         }
-
 
         // lightning
         vec3 lightningColor = vec3(.25, .25, .25);
@@ -488,7 +498,7 @@ void main() {
 
 
         // apply lighting
-        vec3 compositeLight = ambientLightOut + lightOut + lightSpecularOut + skyLightOut + lightningOut +
+        vec3 compositeLight = ambientLightOut + lightOut + lightSpecularOut + lightningOut +
         underglowOut + pointLightsOut + pointLightsSpecularOut + surfaceColorOut;
 
         float unlit = dot(IN.texBlend, vec3(
