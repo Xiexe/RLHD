@@ -453,13 +453,10 @@ void main() {
             float radius = pos.w;
 
             if (dist <= radius) {
-                vec3 pointLightColor = PointLightArray[i].color * 50;
+                vec3 pointLightColor = PointLightArray[i].color;
                 vec3 pointLightDir = normalize(lightToFrag);
 
-                float falloff = dist / radius;
-                float falloffSq = falloff * falloff;
-                float inverseFalloffSq = 1 - falloffSq;
-                float attenuation = (inverseFalloffSq * inverseFalloffSq) / (1 + radius * falloffSq);
+                float attenuation = pow(smoothstep(radius, 0.0, dist), 3);
                 pointLightColor *= attenuation;
 
                 float pointLightDotNormals = max(dot(normals, pointLightDir), 0);
