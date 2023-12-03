@@ -395,8 +395,14 @@ void main() {
 
         // calculate lighting
 
+        // sky light
+        vec3 skyLightColor = fogColor;
+        float skyLightStrength = 0.5;
+        float skyDotNormals = downDotNormals;
+        vec3 skyLightOut = max(skyDotNormals, 0.0) * skyLightColor * skyLightStrength;
+
         // ambient light
-        vec3 ambientLightOut = ambientColor * ambientStrength;
+        vec3 ambientLightOut = ambientColor * ambientStrength + skyLightOut;
 
         float aoFactor =
             IN.texBlend.x * (material1.ambientOcclusionMap == -1 ? 1 : texture(textureArray, vec3(uv1, material1.ambientOcclusionMap)).r) +
@@ -443,14 +449,18 @@ void main() {
         for (int i = 0; i < pointLightsCount; i++) {
             vec4 pos = PointLightArray[i].position;
             vec3 lightToFrag = pos.xyz - IN.position;
-            float distanceSquared = dot(lightToFrag, lightToFrag);
-            float radiusSquared = pos.w;
-            if (distanceSquared <= radiusSquared) {
-                vec3 pointLightColor = PointLightArray[i].color;
+            float dist = length(lightToFrag);
+            float radius = pos.w;
+
+            if (dist <= radius) {
+                vec3 pointLightColor = PointLightArray[i].color * 50;
                 vec3 pointLightDir = normalize(lightToFrag);
 
-                float attenuation = 1 - min(distanceSquared / radiusSquared, 1);
-                pointLightColor *= attenuation * attenuation;
+                float falloff = dist / radius;
+                float falloffSq = falloff * falloff;
+                float inverseFalloffSq = 1 - falloffSq;
+                float attenuation = (inverseFalloffSq * inverseFalloffSq) / (1 + radius * falloffSq);
+                pointLightColor *= attenuation;
 
                 float pointLightDotNormals = max(dot(normals, pointLightDir), 0);
                 pointLightsOut += pointLightColor * pointLightDotNormals;
@@ -459,12 +469,6 @@ void main() {
                 pointLightsSpecularOut += pointLightColor * specular(viewDir, pointLightReflectDir, vSpecularGloss, vSpecularStrength);
             }
         }
-
-        // sky light
-        vec3 skyLightColor = fogColor;
-        float skyLightStrength = 0.5;
-        float skyDotNormals = downDotNormals;
-        vec3 skyLightOut = max(skyDotNormals, 0.0) * skyLightColor * skyLightStrength;
 
 
         // lightning
