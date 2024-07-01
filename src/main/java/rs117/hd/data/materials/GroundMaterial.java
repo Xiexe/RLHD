@@ -37,7 +37,7 @@ public enum GroundMaterial {
 	GRASS_SCROLLING(Material.GRASS_SCROLLING),
 	STONE_SCROLLING(Material.STONE_SCROLLING),
 	DIRT(Material.DIRT_1, Material.DIRT_2),
-	DIRT_VERT(Material.DIRT_1_VERT, Material.DIRT_2_VERT),
+	VERTICAL_DIRT(Material.DIRT_1_VERT, Material.DIRT_2_VERT),
 	SNOW_1(Material.SNOW_1, Material.SNOW_1, Material.SNOW_2, Material.SNOW_3, Material.SNOW_3, Material.SNOW_4),
 	SNOW_2(Material.SNOW_2, Material.SNOW_4),
 	GRAVEL(Material.GRAVEL),
@@ -96,8 +96,9 @@ public enum GroundMaterial {
 	CLEAN_TILE(Material.CLEAN_TILE),
 	WORN_TILES(Material.WORN_TILES),
 	WATER_FLAT(Material.WATER_FLAT),
-	HD_WOOD_PLANKS_1(Material.HD_WOOD_PLANKS_1),
-	ICE_1(Material.ICE_1_HIGHGLOSS),
+	HD_WOOD_PLANKS_2(Material.HD_WOOD_PLANKS_2),
+	ICE_1(Material.ICE_1),
+	ICE_1_HIGHGLOSS(Material.ICE_1_HIGHGLOSS),
 	ICE_4(Material.ICE_4),
 	WINTER_JAGGED_STONE_TILE(Material.WINTER_JAGGED_STONE_TILE),
 	WINTER_JAGGED_STONE_TILE_LIGHT(Material.WINTER_JAGGED_STONE_TILE_LIGHT),
@@ -114,7 +115,10 @@ public enum GroundMaterial {
 		Material.GRAVEL_LIGHT,
 		Material.GRUNGE_2,
 		Material.GRAVEL_LIGHT
-	)
+	),
+	OVERWORLD_ROCKY(Material.ROCK_2, Material.STONE_NORMALED_DARK, Material.ROCK_1, Material.GRAVEL),
+	HD_BRICK_BROWN(Material.HD_BRICK_BROWN),
+	ABYSSAL_FLOOR(Material.ABYSSAL_2, Material.ABYSSAL, Material.ABYSSAL),
 	;
 
 	private final Material[] materials;

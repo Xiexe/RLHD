@@ -94,6 +94,10 @@ public class AABB {
 		maxZ = Math.max(z1, z2);
 	}
 
+	public AABB(int[] from, int[] to) {
+		this(from[0], from[1], from[2], to[0], to[1], to[2]);
+	}
+
 	public static AABB[] regions(int... regionIds) {
 		return Arrays.stream(regionIds)
 			.mapToObj(AABB::new)
@@ -148,6 +152,12 @@ public class AABB {
 		return contains(location.getX(), location.getY(), location.getPlane());
 	}
 
+	public boolean contains(AABB other) {
+		return
+			contains(other.minX, other.minY, other.minZ) &&
+			contains(other.maxX, other.maxY, other.maxZ);
+	}
+
 	public boolean intersects(int minX, int minY, int maxX, int maxY) {
 		return
 			minX < this.maxX && maxX > this.minX &&
@@ -176,6 +186,14 @@ public class AABB {
 		return String.format("AABB{min=(%d,%d), max=(%d,%d)}", minX, minY, maxX, maxY);
 	}
 
+	public String toArgs() {
+		if (isPoint())
+			return String.format("%d, %d", minX, minY);
+		if (minZ == maxZ)
+			return String.format("%d, %d, %d, %d, %d", minX, minY, maxX, maxY, minZ);
+		return String.format("%d, %d, %d, %d, %d, %d", minX, minY, minZ, maxX, maxY, maxZ);
+	}
+
 	@Override
 	public boolean equals(Object obj) {
 		if (!(obj instanceof AABB))
@@ -189,11 +207,12 @@ public class AABB {
 	}
 
 	public static class JsonAdapter extends TypeAdapter<AABB[]> {
+		private final Area.JsonAdapter areaAdapter = new Area.JsonAdapter();
+
 		@Override
 		public AABB[] read(JsonReader in) throws IOException {
 			in.beginArray();
 			ArrayList<AABB> list = new ArrayList<>();
-			outer:
 			while (in.hasNext() && in.peek() != JsonToken.END_ARRAY) {
 				if (in.peek() == JsonToken.NULL) {
 					in.skipValue();
@@ -207,14 +226,9 @@ public class AABB {
 				}
 
 				if (in.peek() == JsonToken.STRING) {
-					String s = in.nextString();
-					for (Area area : Area.values()) {
-						if (area.name().equals(s)) {
-							Collections.addAll(list, area.aabbs);
-							continue outer;
-						}
-					}
-					throw new IOException("Unknown area specified in AABB array: " + s);
+					var area = areaAdapter.read(in);
+					Collections.addAll(list, area.aabbs);
+					continue;
 				}
 
 				in.beginArray();
@@ -225,7 +239,7 @@ public class AABB {
 						case NUMBER:
 							if (i >= ints.length)
 								throw new IOException(
-									"Too many numbers in AABB entry. Must be less than " + ints.length + ".");
+									"Too many numbers in AABB entry (> " + ints.length + ") at " + GsonUtils.location(in));
 							ints[i++] = in.nextInt();
 						case END_ARRAY:
 							break;
@@ -233,7 +247,7 @@ public class AABB {
 							in.skipValue();
 							continue;
 						default:
-							throw new IOException("Malformed AABB entry. Unexpected token: " + in.peek());
+							throw new IOException("Malformed AABB entry. Unexpected token: " + in.peek() + " at " + GsonUtils.location(in));
 					}
 				}
 				in.endArray();
@@ -252,7 +266,7 @@ public class AABB {
 						list.add(new AABB(ints[0], ints[1], ints[2], ints[3]));
 						break;
 					case 5:
-						list.add(new AABB(ints[0], ints[2], ints[1], ints[3], ints[4]));
+						list.add(new AABB(ints[0], ints[1], ints[2], ints[3], ints[4]));
 						break;
 					case 6:
 						list.add(new AABB(ints[0], ints[1], ints[2], ints[3], ints[4], ints[5]));

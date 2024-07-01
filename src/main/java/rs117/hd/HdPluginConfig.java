@@ -33,6 +33,7 @@ import net.runelite.client.config.Range;
 import net.runelite.client.config.Units;
 import rs117.hd.config.AntiAliasingMode;
 import rs117.hd.config.ColorBlindMode;
+import rs117.hd.config.ColorFilter;
 import rs117.hd.config.Contrast;
 import rs117.hd.config.DefaultSkyColor;
 import rs117.hd.config.FogDepthMode;
@@ -45,6 +46,7 @@ import rs117.hd.config.ShadowMode;
 import rs117.hd.config.ShadowResolution;
 import rs117.hd.config.TextureResolution;
 import rs117.hd.config.UIScalingMode;
+import rs117.hd.config.VanillaShadowMode;
 
 import static rs117.hd.HdPlugin.MAX_DISTANCE;
 import static rs117.hd.HdPlugin.MAX_FOG_DEPTH;
@@ -434,18 +436,19 @@ public interface HdPluginConfig extends Config
 		return false;
 	}
 
-	String KEY_HIDE_FAKE_SHADOWS = "hideBakedEffects";
+	String KEY_VANILLA_SHADOW_MODE = "vanillaShadowMode";
 	@ConfigItem(
-		keyName = KEY_HIDE_FAKE_SHADOWS,
-		name = "Hide Fake Shadows",
+		keyName = KEY_VANILLA_SHADOW_MODE,
+		name = "Vanilla Shadows",
 		description =
-			"Hide fake shadows and lighting which is often built into models by Jagex.<br>" +
-			"This does not affect the hitbox of NPCs, so you can still click where the fake shadow would normally be.",
+			"Choose whether shadows built into models by Jagex should be hidden. This does not affect clickboxes.<br>" +
+			"'Show in PvM' will retain shadows for falling crystals during the Olm fight and other useful cases.<br>" +
+			"'Prefer in PvM' will do the above and also disable 117 HD's dynamic shadows in such cases.",
 		position = 11,
 		section = lightingSettings
 	)
-	default boolean hideFakeShadows() {
-		return true;
+	default VanillaShadowMode vanillaShadowMode() {
+		return VanillaShadowMode.SHOW_IN_PVM;
 	}
 
 	String KEY_NORMAL_MAPPING = "normalMapping";
@@ -482,7 +485,7 @@ public interface HdPluginConfig extends Config
 	)
 	String environmentSettings = "environmentSettings";
 
-	String KEY_SEASONAL_THEME = "seasonalThemePreAuto1";
+	String KEY_SEASONAL_THEME = "seasonalTheme";
 	@ConfigItem(
 		keyName = KEY_SEASONAL_THEME,
 		name = "Seasonal Theme",
@@ -491,7 +494,7 @@ public interface HdPluginConfig extends Config
 		section = environmentSettings
 	)
 	default SeasonalTheme seasonalTheme() {
-		return SeasonalTheme.AUTUMN;
+		return SeasonalTheme.AUTOMATIC;
 	}
 
 	@ConfigItem(
@@ -781,6 +784,45 @@ public interface HdPluginConfig extends Config
 	)
 	default boolean lowMemoryMode() {
 		return false;
+	}
+
+	String KEY_REPLACE_FISHING_SPOTS = "replaceFishingSpots";
+	@ConfigItem(
+		keyName = KEY_REPLACE_FISHING_SPOTS,
+		name = "Replace Fishing Spots",
+		description = "Replace certain fishing spots with more appropriate models that are easier to see.",
+		position = 7,
+		section = miscellaneousSettings
+	)
+	default boolean replaceFishingSpots() {
+		return true;
+	}
+
+	String KEY_COLOR_FILTER = "colorFilter";
+	@ConfigItem(
+		keyName = KEY_COLOR_FILTER,
+		name = "Color Filter",
+		description = "Apply a color filter to the game as a post-processing effect.",
+		position = 8,
+		section = miscellaneousSettings
+	)
+	default ColorFilter colorFilter() {
+		return ColorFilter.NONE;
+	}
+
+	String KEY_REMOVE_VERTEX_SNAPPING = "removeVertexSnapping";
+	@ConfigItem(
+		keyName = KEY_REMOVE_VERTEX_SNAPPING,
+		name = "Remove vertex snapping",
+		description =
+			"Removes vertex snapping from most animations.<br>" +
+			"Most animations are barely affected by this, and it only has an effect if the animation smoothing plugin is turned off.<br>" +
+			"To see quite clearly what impact this option has, a good example is the godsword idle animation.",
+		position = 9,
+		section = miscellaneousSettings
+	)
+	default boolean removeVertexSnapping() {
+		return true;
 	}
 
 

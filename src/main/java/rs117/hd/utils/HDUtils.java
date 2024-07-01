@@ -47,42 +47,20 @@ public class HDUtils {
 	public static final long GiB = MiB * KiB;
 	public static final Random rand = new Random();
 
-	// directional vectors approximately opposite of the directional light used by the client
-	private static final float[] LIGHT_DIR_TILE = new float[] { 0.70710678f, 0.70710678f, 0f };
-
 	// The epsilon for floating point values used by jogl
 	public static final float EPSILON = 1.1920929E-7f;
 
-	/**
-	 * Computes a + b, storing it in the out array
-	 */
-	public static float[] add(float[] out, float[] a, float[] b) {
-		for (int i = 0; i < out.length; i++)
-			out[i] = a[i] + b[i];
-		return out;
-	}
+	public static final float PI = (float) Math.PI;
+	public static final float TWO_PI = PI * 2;
+	public static final float HALF_PI = PI / 2;
+	public static final float QUARTER_PI = PI / 2;
 
-	/**
-	 * Computes a - b, storing it in the out array
-	 */
-	public static float[] subtract(float[] out, float[] a, float[] b) {
-		for (int i = 0; i < out.length; i++)
-			out[i] = a[i] - b[i];
-		return out;
-	}
+	public static final float MAX_FLOAT_WITH_128TH_PRECISION = 1 << 16;
 
-	public static float[] cross(float[] out, float[] a, float[] b) {
-		out[0] = a[1] * b[2] - a[2] * b[1];
-		out[1] = a[2] * b[0] - a[0] * b[2];
-		out[2] = a[0] * b[1] - a[1] * b[0];
-		return out;
-	}
+	public static final int MAX_SNOW_LIGHTNESS = 70;
 
-	public static float[] abs(float[] out, float[] v) {
-		for (int i = 0; i < out.length; i++)
-			out[i] = Math.abs(v[i]);
-		return out;
-	}
+	// directional vectors approximately opposite of the directional light used by the client
+	private static final float[] LIGHT_DIR_TILE = new float[] { 0.70710678f, 0.70710678f, 0f };
 
 	public static float min(float... v) {
 		float min = v[0];
@@ -133,6 +111,21 @@ public class HDUtils {
 		return result;
 	}
 
+	public static double fract(double x) {
+		return mod(x, 1);
+	}
+
+	public static float fract(float x) {
+		return mod(x, 1);
+	}
+
+	/**
+	 * Modulo that returns the answer with the same sign as the modulus.
+	 */
+	public static double mod(double x, double modulus) {
+		return (x - Math.floor(x / modulus) * modulus);
+	}
+
 	/**
 	 * Modulo that returns the answer with the same sign as the modulus.
 	 */
@@ -144,7 +137,7 @@ public class HDUtils {
 	 * Modulo that returns the answer with the same sign as the modulus.
 	 */
 	public static int mod(int x, int modulus) {
-		return x - (x / modulus) * modulus;
+		return ((x % modulus) + modulus) % modulus;
 	}
 
 	public static float clamp(float value, float min, float max) {
@@ -153,6 +146,10 @@ public class HDUtils {
 
 	public static int clamp(int value, int min, int max) {
 		return Math.min(Math.max(value, min), max);
+	}
+
+	public static double log2(double x) {
+		return Math.log(x) / Math.log(2);
 	}
 
 	public static int vertexHash(int[] vPos) {
@@ -164,10 +161,10 @@ public class HDUtils {
 	}
 
 	public static float[] calculateSurfaceNormals(float[] a, float[] b, float[] c) {
-		subtract(b, a, b);
-		subtract(c, a, c);
+		Vector.subtract(b, a, b);
+		Vector.subtract(c, a, c);
 		float[] n = new float[3];
-		return cross(n, b, c);
+		return Vector.cross(n, b, c);
 	}
 
 	public static float dotLightDirectionTile(float x, float y, float z) {
@@ -180,6 +177,10 @@ public class HDUtils {
 
 	public static long ceilPow2(long x) {
 		return (long) Math.pow(2, Math.ceil(Math.log(x) / Math.log(2)));
+	}
+
+	public static float[] sunAngles(float altitude, float azimuth) {
+		return new float[] { (float) Math.toRadians(altitude), (float) Math.toRadians(azimuth) };
 	}
 
 	public static int convertWallObjectOrientation(int orientation) {
@@ -308,13 +309,9 @@ public class HDUtils {
 		return new WorldPoint(baseX, baseY, plane);
 	}
 
-	public static int[] cameraSpaceToWorldPoint(Client client, int relativeX, int relativeZ) {
-		int localX = client.getCameraX2() + relativeX;
-		int localY = client.getCameraZ2() + relativeZ;
-		int plane = client.getPlane();
-		return localToWorld(client.getScene(), localX, localY, plane);
-	}
-
+	/**
+	 * The returned plane may be different, so it's not safe to use for indexing into overlay IDs for instance
+	 */
 	public static int[] localToWorld(Scene scene, int localX, int localY, int plane) {
 		int sceneX = localX / LOCAL_TILE_SIZE;
 		int sceneY = localY / LOCAL_TILE_SIZE;
@@ -414,11 +411,11 @@ public class HDUtils {
 		return false;
 	}
 
-	public static int[] getSouthWesternMostTileColor(Tile tile) {
+	public static void getSouthWesternMostTileColor(int[] out, Tile tile) {
 		var paint = tile.getSceneTilePaint();
 		var model = tile.getSceneTileModel();
 		if (paint != null) {
-			return ColorUtils.unpackHslRaw(paint.getSwColor());
+			ColorUtils.unpackRawHsl(out, paint.getSwColor());
 		} else if (model != null) {
 			int faceCount = tile.getSceneTileModel().getFaceX().length;
 			final int[] faceColorsA = model.getTriangleColorA();
@@ -441,9 +438,7 @@ public class HDUtils {
 				}
 			}
 
-			return ColorUtils.unpackHslRaw(hsl);
+			ColorUtils.unpackRawHsl(out, hsl);
 		}
-
-		return null;
 	}
 }
