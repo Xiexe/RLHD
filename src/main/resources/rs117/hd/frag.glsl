@@ -364,9 +364,7 @@ void main() {
         if ((vMaterialData[0] >> MATERIAL_FLAG_DISABLE_SHADOW_RECEIVING & 1) == 0)
             shadow = sampleShadowMap(fragPos, waterTypeIndex, vec2(0), lightDotNormals);
         shadow = max(shadow, selfShadowing);
-        float inverseShadow = 1 - shadow;
-
-
+        float inverseShadow = 1-shadow;
 
         // specular
         vec3 vSpecularGloss = vec3(material1.specularGloss, material2.specularGloss, material3.specularGloss);
@@ -496,6 +494,9 @@ void main() {
         if (isUnderwater) {
             sampleUnderwater(outputColor.rgb, waterType, waterDepth, lightDotNormals);
         }
+
+        // Debug Shadows
+        // outputColor.rgb = vec3(1, 1, 1) * inverseShadow;
     }
 
 
