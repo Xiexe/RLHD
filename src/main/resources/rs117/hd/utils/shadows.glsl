@@ -27,8 +27,8 @@
 #include utils/constants.glsl
 
 const float bias = 0.002;
-const float lightSize = 0.001 * 8;
-const int shadowSamples = 64;
+const float lightSize = 0.001 * 20;
+const int shadowSamples = 16;
 
 #if SHADOW_MODE != SHADOW_MODE_OFF
 void getShadowDepthAndAlpha(float shadowMapTexel, out float shadowDepth, out float shadowAlpha) {
