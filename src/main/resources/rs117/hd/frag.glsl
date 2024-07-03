@@ -56,6 +56,7 @@ uniform float lightningBrightness;
 uniform vec3 lightDir;
 uniform float shadowMaxBias;
 uniform int shadowsEnabled;
+uniform float shadowDistance;
 uniform bool underwaterEnvironment;
 uniform bool underwaterCaustics;
 uniform vec3 underwaterCausticsColor;
@@ -496,7 +497,7 @@ void main() {
         }
 
         // Debug Shadows
-        // outputColor.rgb = vec3(1, 1, 1) * inverseShadow;
+        //outputColor.rgb = vec3(1, 1, 1) * inverseShadow;
     }
 
 

@@ -39,9 +39,7 @@
 
 void main() {
     float opacity = 0;
-    #if SHADOW_TRANSPARENCY
-        opacity = fOpacity;
-    #endif
+    opacity = fOpacity;
 
     #if SHADOW_MODE == SHADOW_MODE_DETAILED
         if (fUvw.z != -1) {
@@ -61,16 +59,15 @@ void main() {
         }
     #endif
 
-    #if SHADOW_TRANSPARENCY
-        // We pack the transparency and depth of each fragment into the upper and lower bits
-        // of the output depth respectively, such that less-transparent fragments overwrite
-        // more-transparent fragments first, and equally transparent fragments second, based on depth.
-        // Unfortunately, the exact handling of floats is implementation dependant, so this may not work
-        // the same across all GPUs.
-        float depth = gl_FragCoord.z;
-        gl_FragDepth = (
-            int((1 - opacity) * SHADOW_ALPHA_MAX) << SHADOW_DEPTH_BITS |
-            int(depth * SHADOW_DEPTH_MAX)
-        ) / float(SHADOW_COMBINED_MAX);
-    #endif
+    // We pack the transparency and depth of each fragment into the upper and lower bits
+    // of the output depth respectively, such that less-transparent fragments overwrite
+    // more-transparent fragments first, and equally transparent fragments second, based on depth.
+    // Unfortunately, the exact handling of floats is implementation dependant, so this may not work
+    // the same across all GPUs.
+    float depth = gl_FragCoord.z;
+    gl_FragDepth = (
+        int((1 - opacity) * SHADOW_ALPHA_MAX) << SHADOW_DEPTH_BITS |
+        int(depth * SHADOW_DEPTH_MAX)
+    ) / float(SHADOW_COMBINED_MAX);
+
 }
