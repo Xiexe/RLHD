@@ -27,8 +27,8 @@
 #include utils/constants.glsl
 
 const float bias = 0.002;
-const float lightSize = 0.001 * 15;
-const int shadowSamples = 8;
+const float lightSize = 0.001 * 4;
+const int shadowSamples = 32;
 
 #if SHADOW_MODE != SHADOW_MODE_OFF
 void getShadowDepthAndAlpha(float shadowMapTexel, out float shadowDepth, out float shadowAlpha) {
@@ -122,7 +122,7 @@ float renderPCSSShadows(vec4 projCoords, float fadeOut) {
     float shadowRenderDistance = SHADOW_MAX_DISTANCE / shadowDistance;
 
     // Blocker search to find average blocker depth
-    float searchRadius = (lightSize / 2) * shadowRenderDistance;
+    float searchRadius = lightSize * shadowRenderDistance;
     float blockerDepth = findBlocker(projCoords, currentDepth, searchRadius);
 
     if (blockerDepth <= -1.0)
@@ -138,7 +138,7 @@ float renderPCSSShadows(vec4 projCoords, float fadeOut) {
     return (shadow) * (1.0 - fadeOut);
 }
 
-float sampleShadowMap(vec3 fragPos, int waterTypeIndex, vec2 distortion, float lightDotNormals) {
+float sampleShadowMap(vec3 fragPos, int waterTypeIndex, vec2 distortion, float lightDotNormals, vec3 normals) {
     vec4 projCoords = lightProjectionMatrix * vec4(fragPos, 1);
     projCoords = projCoords / projCoords.w;
     projCoords = projCoords * 0.5 + 0.5;
@@ -146,12 +146,13 @@ float sampleShadowMap(vec3 fragPos, int waterTypeIndex, vec2 distortion, float l
 
     // Fade out shadows near shadow texture edges
     vec2 uv = projCoords.xy * 2.0 - 1.0;
-    float fadeOut = smoothstep(0.5, 1.0, dot(uv, uv));
+    float fadeOut = smoothstep(0.75, 1.0, dot(uv, uv));
 
     if (fadeOut >= 1.0)
         return 0.0;
 
-    return renderPCSSShadows(projCoords, fadeOut);
+    float pcssShadowSample = renderPCSSShadows(projCoords, fadeOut);
+    return pcssShadowSample;
 }
 #else
 #define sampleShadowMap(fragPos, waterTypeIndex, distortion, lightDotNormals) 0

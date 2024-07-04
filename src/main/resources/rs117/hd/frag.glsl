@@ -136,7 +136,8 @@ void main() {
 
     if (isWater) {
         outputColor = sampleWater(waterTypeIndex, viewDir);
-    } else {
+    }
+    else {
         vec2 uv1 = vUv[0].xy;
         vec2 uv2 = vUv[1].xy;
         vec2 uv3 = vUv[2].xy;
@@ -363,7 +364,7 @@ void main() {
 
         float shadow = 0;
         if ((vMaterialData[0] >> MATERIAL_FLAG_DISABLE_SHADOW_RECEIVING & 1) == 0)
-            shadow = sampleShadowMap(fragPos, waterTypeIndex, vec2(0), lightDotNormals);
+            shadow = sampleShadowMap(fragPos, waterTypeIndex, vec2(0), lightDotNormals, normals);
         shadow = max(shadow, selfShadowing);
         float inverseShadow = 1-shadow;
 
@@ -497,9 +498,8 @@ void main() {
         }
 
         // Debug Shadows
-        //outputColor.rgb = vec3(1, 1, 1) * inverseShadow;
+        // outputColor.rgb = vec3(1, 1, 1) * inverseShadow;
     }
-
 
     outputColor.rgb = clamp(outputColor.rgb, 0, 1);
 
