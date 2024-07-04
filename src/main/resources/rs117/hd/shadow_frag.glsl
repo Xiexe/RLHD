@@ -38,8 +38,12 @@
 #endif
 
 void main() {
-    float opacity = 0;
-    opacity = fOpacity;
+    float opacity = 1;
+
+    #if SHADOW_TRANSPARENCY
+        opacity = 0;
+        opacity = fOpacity;
+    #endif
 
     #if SHADOW_MODE == SHADOW_MODE_DETAILED
         if (fUvw.z != -1) {
@@ -69,5 +73,4 @@ void main() {
         int((1 - opacity) * SHADOW_ALPHA_MAX) << SHADOW_DEPTH_BITS |
         int(depth * SHADOW_DEPTH_MAX)
     ) / float(SHADOW_COMBINED_MAX);
-
 }
