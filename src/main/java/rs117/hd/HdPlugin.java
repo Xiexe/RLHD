@@ -369,6 +369,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 	private int uniFogColor;
 	private int uniFogDepth;
 	private int uniDrawDistance;
+	private int uniShadowDistance;
 	private int uniExpandedMapLoadingChunks;
 	private int uniWaterColorLight;
 	private int uniWaterColorMid;
@@ -905,6 +906,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		uniWaterColorMid = glGetUniformLocation(glSceneProgram, "waterColorMid");
 		uniWaterColorDark = glGetUniformLocation(glSceneProgram, "waterColorDark");
 		uniDrawDistance = glGetUniformLocation(glSceneProgram, "drawDistance");
+		uniShadowDistance = glGetUniformLocation(glSceneProgram, "shadowDistance");
 		uniExpandedMapLoadingChunks = glGetUniformLocation(glSceneProgram, "expandedMapLoadingChunks");
 		uniAmbientStrength = glGetUniformLocation(glSceneProgram, "ambientStrength");
 		uniAmbientColor = glGetUniformLocation(glSceneProgram, "ambientColor");
@@ -1919,6 +1921,7 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 			float[] lightViewMatrix = Mat4.rotateX(PI + environmentManager.currentSunAngles[0]);
 			Mat4.mul(lightViewMatrix, Mat4.rotateY(PI - environmentManager.currentSunAngles[1]));
 
+			//DRAW SHADOWS
 			float[] lightProjectionMatrix = Mat4.identity();
 			if (configShadowsEnabled && fboShadowMap != 0 && environmentManager.currentDirectionalStrength > 0) {
 				frameTimer.begin(Timer.RENDER_SHADOWS);
@@ -2014,101 +2017,8 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 					break;
 			}
 			fogDepth *= Math.min(getDrawDistance(), 90) / 10.f;
-			glUniform1i(uniUseFog, fogDepth > 0 ? 1 : 0);
-			glUniform1f(uniFogDepth, fogDepth);
-			glUniform3fv(uniFogColor, fogColor);
 
-			glUniform1f(uniDrawDistance, getDrawDistance());
-			glUniform1i(uniExpandedMapLoadingChunks, sceneContext.expandedMapLoadingChunks);
-			glUniform1f(uniColorBlindnessIntensity, config.colorBlindnessIntensity() / 100.f);
-
-			float[] waterColorHsv = ColorUtils.srgbToHsv(environmentManager.currentWaterColor);
-			float lightBrightnessMultiplier = 0.8f;
-			float midBrightnessMultiplier = 0.45f;
-			float darkBrightnessMultiplier = 0.05f;
-			float[] waterColorLight = ColorUtils.linearToSrgb(ColorUtils.hsvToSrgb(new float[] {
-				waterColorHsv[0],
-				waterColorHsv[1],
-				waterColorHsv[2] * lightBrightnessMultiplier
-			}));
-			float[] waterColorMid = ColorUtils.linearToSrgb(ColorUtils.hsvToSrgb(new float[] {
-				waterColorHsv[0],
-				waterColorHsv[1],
-				waterColorHsv[2] * midBrightnessMultiplier
-			}));
-			float[] waterColorDark = ColorUtils.linearToSrgb(ColorUtils.hsvToSrgb(new float[] {
-				waterColorHsv[0],
-				waterColorHsv[1],
-				waterColorHsv[2] * darkBrightnessMultiplier
-			}));
-			glUniform3fv(uniWaterColorLight, waterColorLight);
-			glUniform3fv(uniWaterColorMid, waterColorMid);
-			glUniform3fv(uniWaterColorDark, waterColorDark);
-
-			float brightness = config.brightness() / 20f;
-			glUniform1f(uniAmbientStrength, environmentManager.currentAmbientStrength * brightness);
-			glUniform3fv(uniAmbientColor, environmentManager.currentAmbientColor);
-			glUniform1f(uniLightStrength, environmentManager.currentDirectionalStrength * brightness);
-			glUniform3fv(uniLightColor, environmentManager.currentDirectionalColor);
-
-			glUniform1f(uniUnderglowStrength, environmentManager.currentUnderglowStrength);
-			glUniform3fv(uniUnderglowColor, environmentManager.currentUnderglowColor);
-
-			glUniform1f(uniGroundFogStart, environmentManager.currentGroundFogStart);
-			glUniform1f(uniGroundFogEnd, environmentManager.currentGroundFogEnd);
-			glUniform1f(uniGroundFogOpacity, config.groundFog() ? environmentManager.currentGroundFogOpacity : 0);
-
-			// Lights & lightning
-			glUniform1i(uniPointLightsCount, sceneContext.numVisibleLights);
-			glUniform1f(uniLightningBrightness, environmentManager.getLightningBrightness());
-
-			glUniform1f(uniSaturation, config.saturation() / 100f);
-			glUniform1f(uniContrast, config.contrast() / 100f);
-			glUniform1i(uniUnderwaterEnvironment, environmentManager.isUnderwater() ? 1 : 0);
-			glUniform1i(uniUnderwaterCaustics, config.underwaterCaustics() ? 1 : 0);
-			glUniform3fv(uniUnderwaterCausticsColor, environmentManager.currentUnderwaterCausticsColor);
-			glUniform1f(uniUnderwaterCausticsStrength, environmentManager.currentUnderwaterCausticsStrength);
-			glUniform1f(uniElapsedTime, (float) (elapsedTime % MAX_FLOAT_WITH_128TH_PRECISION));
-			glUniform3fv(uniCameraPos, cameraPosition);
-
-			// Extract the 3rd column from the light view matrix (the float array is column-major)
-			// This produces the view matrix's forward direction vector in world space,
-			// which in our case is the negative of the light's direction
-			glUniform3f(uniLightDir, lightViewMatrix[2], lightViewMatrix[6], lightViewMatrix[10]);
-
-			// use a curve to calculate max bias value based on the density of the shadow map
-			float shadowPixelsPerTile = (float) shadowMapResolution / config.shadowDistance().getValue();
-			float maxBias = 26f * (float) Math.pow(0.925f, (0.4f * shadowPixelsPerTile - 10f)) + 13f;
-			glUniform1f(uniShadowMaxBias, maxBias / 10000f);
-
-			glUniform1i(uniShadowsEnabled, configShadowsEnabled ? 1 : 0);
-
-			if (configColorFilter != ColorFilter.NONE) {
-				glUniform1i(uniColorFilter, configColorFilter.ordinal());
-				glUniform1i(uniColorFilterPrevious, configColorFilterPrevious.ordinal());
-				long timeSinceChange = System.currentTimeMillis() - colorFilterChangedAt;
-				glUniform1f(uniColorFilterFade, clamp(timeSinceChange / COLOR_FILTER_FADE_DURATION, 0, 1));
-			}
-
-			// Calculate projection matrix
-			float[] projectionMatrix = Mat4.scale(client.getScale(), client.getScale(), 1);
-			Mat4.mul(projectionMatrix, Mat4.projection(viewportWidth, viewportHeight, NEAR_PLANE));
-			Mat4.mul(projectionMatrix, Mat4.rotateX(cameraOrientation[1]));
-			Mat4.mul(projectionMatrix, Mat4.rotateY(cameraOrientation[0]));
-			Mat4.mul(projectionMatrix, Mat4.translate(
-				-cameraPosition[0],
-				-cameraPosition[1],
-				-cameraPosition[2]
-			));
-			glUniformMatrix4fv(uniProjectionMatrix, false, projectionMatrix);
-
-			// Bind directional light projection matrix
-			glUniformMatrix4fv(uniLightProjectionMatrix, false, lightProjectionMatrix);
-
-			// Bind uniforms
-			glUniformBlockBinding(glSceneProgram, uniBlockMaterials, UNIFORM_BLOCK_MATERIALS);
-			glUniformBlockBinding(glSceneProgram, uniBlockWaterTypes, UNIFORM_BLOCK_WATER_TYPES);
-			glUniformBlockBinding(glSceneProgram, uniBlockPointLights, UNIFORM_BLOCK_LIGHTS);
+			PopulateShaderUniforms(viewportWidth, viewportHeight, fogDepth, fogColor, lightViewMatrix, lightProjectionMatrix);
 
 			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fboSceneHandle);
 			glToggle(GL_MULTISAMPLE, numSamples > 1);
@@ -2189,6 +2099,110 @@ public class HdPlugin extends Plugin implements DrawCallbacks {
 		// Process pending config changes after the EDT is done with any pending work, which could include further config changes
 		if (!pendingConfigChanges.isEmpty())
 			SwingUtilities.invokeLater(this::processPendingConfigChanges);
+	}
+
+	private void PopulateShaderUniforms(
+		int viewportWidth, int viewportHeight, float fogDepth,
+		float[] fogColor,
+		float[] lightViewMatrix,
+		float[] lightProjectionMatrix
+	) {
+		glUniform1i(uniUseFog, fogDepth > 0 ? 1 : 0);
+		glUniform1f(uniFogDepth, fogDepth);
+		glUniform3fv(uniFogColor, fogColor);
+
+		glUniform1f(uniDrawDistance, getDrawDistance());
+		glUniform1i(uniExpandedMapLoadingChunks, sceneContext.expandedMapLoadingChunks);
+		glUniform1f(uniColorBlindnessIntensity, config.colorBlindnessIntensity() / 100.f);
+
+		float[] waterColorHsv = ColorUtils.srgbToHsv(environmentManager.currentWaterColor);
+		float lightBrightnessMultiplier = 0.8f;
+		float midBrightnessMultiplier = 0.45f;
+		float darkBrightnessMultiplier = 0.05f;
+		float[] waterColorLight = ColorUtils.linearToSrgb(ColorUtils.hsvToSrgb(new float[] {
+			waterColorHsv[0],
+			waterColorHsv[1],
+			waterColorHsv[2] * lightBrightnessMultiplier
+		}));
+		float[] waterColorMid = ColorUtils.linearToSrgb(ColorUtils.hsvToSrgb(new float[] {
+			waterColorHsv[0],
+			waterColorHsv[1],
+			waterColorHsv[2] * midBrightnessMultiplier
+		}));
+		float[] waterColorDark = ColorUtils.linearToSrgb(ColorUtils.hsvToSrgb(new float[] {
+			waterColorHsv[0],
+			waterColorHsv[1],
+			waterColorHsv[2] * darkBrightnessMultiplier
+		}));
+		glUniform3fv(uniWaterColorLight, waterColorLight);
+		glUniform3fv(uniWaterColorMid, waterColorMid);
+		glUniform3fv(uniWaterColorDark, waterColorDark);
+
+		float brightness = config.brightness() / 20f;
+		glUniform1f(uniAmbientStrength, environmentManager.currentAmbientStrength * brightness);
+		glUniform3fv(uniAmbientColor, environmentManager.currentAmbientColor);
+		glUniform1f(uniLightStrength, environmentManager.currentDirectionalStrength * brightness);
+		glUniform3fv(uniLightColor, environmentManager.currentDirectionalColor);
+
+		glUniform1f(uniUnderglowStrength, environmentManager.currentUnderglowStrength);
+		glUniform3fv(uniUnderglowColor, environmentManager.currentUnderglowColor);
+
+		glUniform1f(uniGroundFogStart, environmentManager.currentGroundFogStart);
+		glUniform1f(uniGroundFogEnd, environmentManager.currentGroundFogEnd);
+		glUniform1f(uniGroundFogOpacity, config.groundFog() ? environmentManager.currentGroundFogOpacity : 0);
+
+		// Lights & lightning
+		glUniform1i(uniPointLightsCount, sceneContext.numVisibleLights);
+		glUniform1f(uniLightningBrightness, environmentManager.getLightningBrightness());
+
+		glUniform1f(uniSaturation, config.saturation() / 100f);
+		glUniform1f(uniContrast, config.contrast() / 100f);
+		glUniform1i(uniUnderwaterEnvironment, environmentManager.isUnderwater() ? 1 : 0);
+		glUniform1i(uniUnderwaterCaustics, config.underwaterCaustics() ? 1 : 0);
+		glUniform3fv(uniUnderwaterCausticsColor, environmentManager.currentUnderwaterCausticsColor);
+		glUniform1f(uniUnderwaterCausticsStrength, environmentManager.currentUnderwaterCausticsStrength);
+		glUniform1f(uniElapsedTime, (float) (elapsedTime % MAX_FLOAT_WITH_128TH_PRECISION));
+		glUniform3fv(uniCameraPos, cameraPosition);
+
+		// Extract the 3rd column from the light view matrix (the float array is column-major)
+		// This produces the view matrix's forward direction vector in world space,
+		// which in our case is the negative of the light's direction
+		glUniform3f(uniLightDir, lightViewMatrix[2], lightViewMatrix[6], lightViewMatrix[10]);
+
+		// use a curve to calculate max bias value based on the density of the shadow map
+		float shadowPixelsPerTile = (float) shadowMapResolution / config.shadowDistance().getValue();
+		float maxBias = 26f * (float) Math.pow(0.925f, (0.4f * shadowPixelsPerTile - 10f)) + 13f;
+		glUniform1f(uniShadowMaxBias, maxBias / 10000f);
+
+		glUniform1i(uniShadowsEnabled, configShadowsEnabled ? 1 : 0);
+		glUniform1f(uniShadowDistance, config.shadowDistance().getValue());
+
+		if (configColorFilter != ColorFilter.NONE) {
+			glUniform1i(uniColorFilter, configColorFilter.ordinal());
+			glUniform1i(uniColorFilterPrevious, configColorFilterPrevious.ordinal());
+			long timeSinceChange = System.currentTimeMillis() - colorFilterChangedAt;
+			glUniform1f(uniColorFilterFade, clamp(timeSinceChange / COLOR_FILTER_FADE_DURATION, 0, 1));
+		}
+
+		// Calculate projection matrix
+		float[] projectionMatrix = Mat4.scale(client.getScale(), client.getScale(), 1);
+		Mat4.mul(projectionMatrix, Mat4.projection(viewportWidth, viewportHeight, NEAR_PLANE));
+		Mat4.mul(projectionMatrix, Mat4.rotateX(cameraOrientation[1]));
+		Mat4.mul(projectionMatrix, Mat4.rotateY(cameraOrientation[0]));
+		Mat4.mul(projectionMatrix, Mat4.translate(
+			-cameraPosition[0],
+			-cameraPosition[1],
+			-cameraPosition[2]
+		));
+		glUniformMatrix4fv(uniProjectionMatrix, false, projectionMatrix);
+
+		// Bind directional light projection matrix
+		glUniformMatrix4fv(uniLightProjectionMatrix, false, lightProjectionMatrix);
+
+		// Bind uniforms
+		glUniformBlockBinding(glSceneProgram, uniBlockMaterials, UNIFORM_BLOCK_MATERIALS);
+		glUniformBlockBinding(glSceneProgram, uniBlockWaterTypes, UNIFORM_BLOCK_WATER_TYPES);
+		glUniformBlockBinding(glSceneProgram, uniBlockPointLights, UNIFORM_BLOCK_LIGHTS);
 	}
 
 	private void drawUi(int overlayColor, final int canvasHeight, final int canvasWidth) {
